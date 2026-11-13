@@ -207,7 +207,7 @@ export default {
 
       if (confirm(`Install this release?\n\nThis will replace your current binaries \n\n[${r.name}] ${release}`)) {
         try {
-          const r = await SpireApi.v1().post(`eqemuserver/install-release/` + release)
+          const r = await SpireApi.v1().post(`eqemuserver/install-release/` + encodeURIComponent(release))
           if (r.status === 200) {
             this.notification = r.data.message
 
@@ -322,6 +322,15 @@ export default {
       });
     },
     async loadReleases() {
+      // EverForge supplies its published server contract. Other installations
+      // keep the normal upstream release listing when this adapter is absent.
+      try {
+        const custom = await SpireApi.v1().get('everforge/releases')
+        if (custom.status === 200 && Array.isArray(custom.data.releases)) {
+          this.releases = custom.data.releases
+          return
+        }
+      } catch (e) { /* ordinary upstream installation */ }
       return new Promise(async (resolve) => {
         for (let url of SpireApi.getPublicWithLocalFallbacks()) {
           try {
@@ -344,7 +353,7 @@ export default {
     },
     getWindowsDownloads(r) {
       const f = r.assets.find((e) => {
-        return e.name.includes("windows")
+        return e.name.toLowerCase().includes("windows")
       })
 
       if (f) {
@@ -355,7 +364,7 @@ export default {
     },
     getWindowsDownloadLink(r) {
       const f = r.assets.find((e) => {
-        return e.name.includes("windows")
+        return e.name.toLowerCase().includes("windows")
       })
 
       if (f) {
@@ -366,7 +375,7 @@ export default {
     },
     getLinuxDownloadLink(r) {
       const f = r.assets.find((e) => {
-        return e.name.includes("linux")
+        return e.name.toLowerCase().includes("linux")
       })
 
       if (f) {
@@ -377,7 +386,7 @@ export default {
     },
     getLinuxDownloads(r) {
       const f = r.assets.find((e) => {
-        return e.name.includes("linux")
+        return e.name.toLowerCase().includes("linux")
       })
 
       if (f) {

@@ -31,10 +31,9 @@ export class EqemuWebsocketClient {
       }
 
       this.port = port
-      this.ws   = new WebSocket('ws://' + location.hostname + ':' + port)
+      this.ws   = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/eqemu-websocket/' + encodeURIComponent(port))
       this.uuid = this.generateUUID()
 
-      console.log(auth)
 
       this.ws.onerror = (event: any) => {
         this.log(util.format('Error %s', JSON.stringify(event)))
@@ -87,7 +86,7 @@ export class EqemuWebsocketClient {
    * @param parameters
    */
   public send(method: string, parameters: any[] = []) {
-    this.log(util.format('Method: \'%s\' Params %s', method, JSON.stringify(parameters)))
+    if (method !== 'login') this.log(util.format('Method: \'%s\' Params %s', method, JSON.stringify(parameters)))
 
     this.ws.send(
       JSON.stringify(
