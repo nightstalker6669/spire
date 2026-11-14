@@ -207,12 +207,12 @@ func provideControllers(
 			analytics,
 			connections,
 			hello,
+			permissionsController,
 			query,
 		},
 		v1controllers: []routes.Controller{
 			settingsController,
 			clientFilesController,
-			permissionsController,
 			usersController,
 			eqemuserverController,
 			serverconfigController,

@@ -3,6 +3,8 @@ package permissions
 import (
 	"github.com/EQEmu/spire/internal/database"
 	"github.com/EQEmu/spire/internal/http/routes"
+ "github.com/EQEmu/spire/internal/http/request"
+ "strings"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -25,9 +27,36 @@ func NewController(
 func (p *Controller) Routes() []*routes.Route {
 	return []*routes.Route{
 		routes.RegisterRoute(http.MethodGet, "permissions/resources", p.getPermissionResources, nil),
+ routes.RegisterRoute(http.MethodGet, "permissions/check", p.checkPermission, nil),
 	}
 }
 
 func (p *Controller) getPermissionResources(c echo.Context) error {
 	return c.JSON(http.StatusOK, p.permissions.GetResources(c.Echo().Routes()))
+}
+
+// checkPermission lets an external process adapter apply this same ACL without
+// invoking a mutating server action. It always checks the authenticated user.
+func (p *Controller) checkPermission(c echo.Context) error {
+    user := request.GetUser(c)
+    if user.ID == 0 { return c.JSON(http.StatusUnauthorized, echo.Map{"allowed":false}) }
+    target := c.QueryParam("path")
+    method := strings.ToUpper(c.QueryParam("method"))
+    if !strings.HasPrefix(target, "/api/v1/") || len(target) > 512 || strings.ContainsAny(target,"?#\r\n") {
+        return c.JSON(http.StatusBadRequest, echo.Map{"error":"Invalid resource path"})
+    }
+    switch method {
+    case http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+    default: return c.JSON(http.StatusBadRequest, echo.Map{"error":"Invalid method"})
+    }
+    connection := p.db.GetUserConnection(user)
+    if connection.ServerDatabaseConnectionId == 0 { return c.JSON(http.StatusForbidden, echo.Map{"allowed":false}) }
+    cloned := c.Request().Clone(c.Request().Context())
+    cloned.URL.Path = target
+    cloned.Method = method
+    previous := c.Request()
+    c.SetRequest(cloned)
+    defer c.SetRequest(previous)
+    allowed := p.permissions.CanAccessResource(c,user,uint(connection.ServerDatabaseConnectionId))
+    return c.JSON(http.StatusOK,echo.Map{"allowed":allowed})
 }
