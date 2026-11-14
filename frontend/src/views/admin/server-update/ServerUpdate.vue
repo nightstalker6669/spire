@@ -53,8 +53,8 @@
             </div>
             <div class="col-9">
               <small class="text-muted">
-                Uses official release binaries from
-                <a href="https://github.com/EQEmu/EQEmu/releases" target="releases">EverQuest Emulator Server</a>
+                Uses published release binaries from
+                <a :href="'https://github.com/' + releaseRepository + '/releases'" target="releases">{{ releaseRepository }}</a>
               </small>
               <div class="mt-1">
                 Use this when you are not developing server or making code changes to server code
@@ -178,6 +178,7 @@
     <update-releases
       class="mt-5"
       :version="version.server_version"
+      @release-repository="releaseRepository = $event"
       @refresh-version="getVersions()"
       v-if="updateType === BUILD_TYPE.RELEASE && version"
     />
@@ -247,6 +248,7 @@ export default {
   components: { EqProgressBar, LoaderFakeProgress, UpdateReleases, InfoErrorBanner, EqCheckbox, EqWindow },
   data() {
     return {
+      releaseRepository: "EQEmu/EQEmu",
       updateType: "",
 
       version: {},
